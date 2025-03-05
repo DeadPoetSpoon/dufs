@@ -475,12 +475,28 @@ impl Server {
                         status_not_found(&mut res);
                     }
                 }
+                "GETPATH" => {
+                    self.handle_get_path(path, &mut res).await?;
+                }
                 _ => {
                     *res.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
                 }
             },
         }
         Ok(res)
+    }
+
+    async fn handle_get_path(&self, path: &Path, res: &mut Response) -> Result<()> {
+        if !path.exists() {
+            status_not_found(res);
+            return Ok(());
+        }
+        let mut local_path = path.display().to_string();
+        if cfg!(windows) {
+            local_path = (local_path[4..]).to_string();
+        }
+        *res.body_mut() = body_full(local_path);
+        Ok(())
     }
 
     async fn handle_upload(
